@@ -1,6 +1,7 @@
 package chapter2ThreadSafety;
 
 
+import annotations.GuardedBy;
 import annotations.NotThreadSafe;
 import annotations.ThreadSafe;
 
@@ -30,10 +31,21 @@ public class UnsafeCountStatelessFactorizer implements Servlet {
 
          USE ATOMIC OPERATIONS FOR THIS KIND OF SCENARIO, NOT ONLY ATOMIC REFERENCES/VARIABLES.
      */
+
+    /* Exemplo 3 usando Atomic References with intrinsic lock
+    @GuardedBy("this") // Using intrinsic lock to guard both variables
     private final AtomicReference<BigInteger> lastNumber =
             new AtomicReference<>(BigInteger.ZERO);
+    @GuardedBy("this")
     private final AtomicReference<BigInteger[]> lastFactors =
             new AtomicReference<>();
+
+     */
+    @GuardedBy("this") // Using synchronized methods to guard both variables and turn operations atomic
+    private BigInteger lastNumber;
+    @GuardedBy("this")
+    private BigInteger[] lastFactors;
+
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -61,8 +73,9 @@ public class UnsafeCountStatelessFactorizer implements Servlet {
      */
 
     @Override
-    public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
-        System.out.printf("servlet id: %d, thread: %s\n",
+    /* Exemplo 3 - using Atomic References
+       public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+       System.out.printf("servlet id: %d, thread: %s\n",
                 System.identityHashCode(this), Thread.currentThread().getName());
         BigInteger i = extractFromRequest(req);
         if (i.equals(lastNumber.get())) {
@@ -71,6 +84,23 @@ public class UnsafeCountStatelessFactorizer implements Servlet {
             BigInteger[] factors = factor(i);
             lastNumber.set(i);
             lastFactors.set(factors);
+            encodeIntoResponse(res, factors);
+        }
+        System.out.printf("Thread name: %s, number: %s, factors: %s, count: %d \n",
+                Thread.currentThread().getName(), i, lastFactors, i);
+    }
+     */
+
+    public synchronized void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+        System.out.printf("servlet id: %d, thread: %s\n",
+                System.identityHashCode(this), Thread.currentThread().getName());
+        BigInteger i = extractFromRequest(req);
+        if (i.equals(lastNumber)) {
+            encodeIntoResponse(res, lastFactors);
+        } else {
+            BigInteger[] factors = factor(i);
+            lastNumber = i;
+            lastFactors = factors;
             encodeIntoResponse(res, factors);
         }
         System.out.printf("Thread name: %s, number: %s, factors: %s, count: %d \n",
