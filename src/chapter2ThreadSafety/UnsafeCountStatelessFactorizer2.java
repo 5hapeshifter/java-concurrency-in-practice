@@ -3,6 +3,7 @@ package chapter2ThreadSafety;
 
 import annotations.GuardedBy;
 import annotations.NotThreadSafe;
+import annotations.ThreadSafe;
 
 import javax.servlet.*;
 import java.io.IOException;
@@ -12,7 +13,7 @@ import java.util.Arrays;
 /**
  * Using sychronized blocks to make compound actions atomic
  */
-@NotThreadSafe
+@ThreadSafe
 public class UnsafeCountStatelessFactorizer2 implements Servlet {
 
     @GuardedBy("this")
